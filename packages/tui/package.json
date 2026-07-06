@@ -1,0 +1,25 @@
+{
+  "name": "@rcsm/tui",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Minimal Ink terminal client: an agents view over all sessions plus a session view",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "rcsm-tui": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "start": "node dist/cli.js"
+  },
+  "dependencies": {
+    "@rcsm/protocol": "*",
+    "ink": "^5.0.1",
+    "react": "^18.3.1",
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/ws": "^8.5.12"
+  }
+}

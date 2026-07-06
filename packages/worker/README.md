@@ -55,8 +55,9 @@ Kept intentionally small; noted here so the spec stays honest.
 
 ## Not in this package
 
-The `orchestrator` (multi-desktop aggregation) and `tui` (Ink client) tiers from
-the spec do **not** exist upstream and are not built here.
+The `orchestrator` (multi-desktop aggregation) tier from the spec is not built
+yet. The `tui` (Ink client) lives in `packages/tui` and connects to this worker
+directly.
 
 [spec]: ../../docs/superpowers/specs/2026-07-04-remote-claude-shell-manager-design.md
 [ow]: https://github.com/EvanZhang008/open-walnut
