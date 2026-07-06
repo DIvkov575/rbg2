@@ -1,0 +1,20 @@
+{
+  "name": "remote-claude-shell-manager",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Observe and control many Claude Code sessions across remote desktops from a local terminal UI",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "tsc --build --clean",
+    "typecheck": "tsc --build",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/node": "^20.14.0"
+  }
+}

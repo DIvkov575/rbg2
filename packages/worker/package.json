@@ -1,0 +1,24 @@
+{
+  "name": "@rcsm/worker",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Remote worker: owns Claude Agent SDK sessions on a desktop and exposes them over the wire protocol",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "rcsm-worker": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "start": "node dist/cli.js"
+  },
+  "dependencies": {
+    "@rcsm/protocol": "*",
+    "@anthropic-ai/claude-agent-sdk": "^0.2.42",
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.12"
+  }
+}
