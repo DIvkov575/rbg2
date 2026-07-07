@@ -10,11 +10,18 @@ repo-root `NOTICE`).
 
 ## Run
 
+Runs straight from TypeScript source with [Bun][bun] — no build step:
+
 ```bash
-npm run build            # from repo root (builds protocol + worker)
-node packages/worker/dist/cli.js --port 7890 --data-dir ~/.rcsm
+bun run packages/worker/src/cli.ts --port 7890 --data-dir ~/.rcsm
+# or, from repo root:  bun run worker -- --port 7890
 # prints: { "port": 7890, "pid": 12345 }
 ```
+
+To produce a standalone bundle for deployment: `bun run build` (emits
+`dist/cli.js`, runnable with node or bun).
+
+[bun]: https://bun.sh
 
 ## Protocol (summary)
 

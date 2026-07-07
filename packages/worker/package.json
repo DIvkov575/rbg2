@@ -4,14 +4,17 @@
   "private": true,
   "description": "Remote worker: owns Claude Agent SDK sessions on a desktop and exposes them over the wire protocol",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "bin": {
-    "rcsm-worker": "./dist/cli.js"
+    "rcsm-worker": "./src/cli.ts"
   },
   "scripts": {
-    "build": "tsc --build",
-    "start": "node dist/cli.js"
+    "start": "bun run src/cli.ts",
+    "build": "bun build src/cli.ts --target=node --outdir dist"
   },
   "dependencies": {
     "@rcsm/protocol": "*",

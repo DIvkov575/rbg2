@@ -25,7 +25,7 @@ Motivating goals (from brainstorming):
 | Remote model | **Persistent remote worker** per desktop | Sessions survive SSH drops and orchestrator restarts. Worth the per-desktop deploy cost. |
 | Daemon location | **Local orchestrator** aggregates remote workers | User drives everything from the local machine; workers live where the code is. |
 | Binary structure | **Two separate programs** (worker, orchestrator) sharing a protocol lib | Clean separation of concerns; no logic duplication via the shared package. |
-| Language/runtime | **All TypeScript / Node** | Agent SDK is Node-native; one toolchain; shared protocol types; Ink for TUI. |
+| Language/runtime | **All TypeScript on Bun** | Agent SDK is Node-compatible and runs under Bun; one toolchain; shared protocol types; Ink for TUI. Bun runs the TS source directly (no build step for dev); `tsc --noEmit` for type-checking; `bun build` emits deploy bundles. |
 | Transport | **SSH-forwarded unix socket** (for now) | Zero network exposure; auth = existing SSH keys. Swappable to WebSocket later. |
 
 ## Architecture

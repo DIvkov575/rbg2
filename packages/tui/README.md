@@ -21,13 +21,17 @@ i prompt · x kill · esc back · (enter send · esc cancel while typing)
 
 ## Run
 
+Runs straight from source with [Bun][bun] — no build step:
+
 ```bash
-npm run build                              # from repo root
-node packages/worker/dist/cli.js &         # start a worker on :7890
-node packages/tui/dist/cli.js              # connect the TUI
+bun run packages/worker/src/cli.ts &       # start a worker on :7890
+bun run packages/tui/src/cli.tsx           # connect the TUI
+# or from repo root:  bun run worker  /  bun run tui
 #   --worker ws://host:7890   point at a specific worker
 #   --cwd <path>              working dir for new sessions
 ```
+
+[bun]: https://bun.sh
 
 New sessions are started in `bypass` permission mode (trusted local sessions),
 matching the design spec.

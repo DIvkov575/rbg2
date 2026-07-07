@@ -4,13 +4,13 @@
   "private": true,
   "description": "Minimal Ink terminal client: an agents view over all sessions plus a session view",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./src/cli.tsx",
   "bin": {
-    "rcsm-tui": "./dist/cli.js"
+    "rcsm-tui": "./src/cli.tsx"
   },
   "scripts": {
-    "build": "tsc --build",
-    "start": "node dist/cli.js"
+    "start": "bun run src/cli.tsx",
+    "build": "bun build src/cli.tsx --target=node --outdir dist --external react-devtools-core"
   },
   "dependencies": {
     "@rcsm/protocol": "*",

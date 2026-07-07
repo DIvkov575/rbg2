@@ -1,8 +1,9 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./packages/protocol" },
-    { "path": "./packages/worker" },
-    { "path": "./packages/tui" }
-  ]
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@rcsm/protocol": ["./packages/protocol/src/index.ts"]
+    }
+  },
+  "include": ["packages/*/src/**/*"]
 }
