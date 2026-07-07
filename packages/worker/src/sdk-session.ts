@@ -205,7 +205,7 @@ export class SdkSession {
     // Start the output loop in the background
     this.processOutput().catch((err) => {
       this.emitEvent('session:error', {
-        sessionId: this._sessionId ?? this.id,
+        sessionId: this.id,
         error: err instanceof Error ? err.message : String(err),
       })
       this._status = 'error'
@@ -213,7 +213,7 @@ export class SdkSession {
 
     // The output loop captures the session ID from the init message.
     // Return the provided sessionId or fall back to our local id.
-    return this._sessionId ?? this.id
+    return this.id
   }
 
   /**
@@ -287,7 +287,7 @@ export class SdkSession {
     // Start the output loop in the background
     this.processOutput().catch((err) => {
       this.emitEvent('session:error', {
-        sessionId: this._sessionId ?? this.id,
+        sessionId: this.id,
         error: err instanceof Error ? err.message : String(err),
       })
       this._status = 'error'
@@ -365,7 +365,7 @@ export class SdkSession {
         const questions = (input as Record<string, unknown>).questions
 
         this.emitEvent('session:ask-question', {
-          sessionId: this._sessionId ?? this.id,
+          sessionId: this.id,
           questionId,
           questions,
         })
@@ -386,7 +386,7 @@ export class SdkSession {
       if (toolName === 'ExitPlanMode') {
         const planContent = typeof input.plan === 'string' ? input.plan : ''
         this.emitEvent('session:plan-complete', {
-          sessionId: this._sessionId ?? this.id,
+          sessionId: this.id,
           planContent,
         })
         return { behavior: 'allow' as const }
@@ -409,7 +409,7 @@ export class SdkSession {
       const requestId = `perm-${crypto.randomBytes(4).toString('hex')}`
 
       this.emitEvent('session:permission-request', {
-        sessionId: this._sessionId ?? this.id,
+        sessionId: this.id,
         requestId,
         toolName,
         input,
@@ -455,7 +455,11 @@ export class SdkSession {
   }
 
   private handleMessage(msg: SDKMessage): void {
-    const sessionId = this._sessionId ?? this.id
+    // The worker handle (this.id) is the single public identity used in every
+    // emitted payload. The SDK's own session_id is captured into _sessionId
+    // for resume only — never exposed to clients, so list/events/commands all
+    // agree on one id.
+    const sessionId = this.id
 
     switch (msg.type) {
     case 'system': {
@@ -465,7 +469,7 @@ export class SdkSession {
           const init = sys as SDKSystemMessage
           this._sessionId = init.session_id
           this.emitEvent('session:init', {
-            sessionId: init.session_id,
+            sessionId,
             model: init.model,
             cwd: init.cwd,
             tools: init.tools,
@@ -487,12 +491,11 @@ export class SdkSession {
       if (!assistant.message?.content) break
 
       for (const block of assistant.message.content) {
-        if (block.type === 'text' && 'text' in block) {
-          this.emitEvent('session:text-delta', {
-            sessionId,
-            delta: block.text,
-          })
-        } else if (block.type === 'tool_use') {
+        // Text is streamed incrementally via `stream_event` deltas (we always
+        // enable includePartialMessages). The final assistant message repeats
+        // the full text block, so emitting it here would double every reply —
+        // skip text and handle only tool_use from the completed message.
+        if (block.type === 'tool_use') {
           this.emitEvent('session:tool-use', {
             sessionId,
             toolUseId: block.id,
@@ -566,7 +569,7 @@ export class SdkSession {
       }
 
       this.emitEvent('session:result', {
-        sessionId: result.session_id,
+        sessionId,
         result: resultText,
         subtype,
         cost: result.total_cost_usd,

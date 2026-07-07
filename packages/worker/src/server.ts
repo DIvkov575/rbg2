@@ -267,7 +267,9 @@ export class WorkerServer {
     const sessions: SessionInfo[] = []
     for (const [id, session] of this.sessions) {
       sessions.push({
-        sessionId: session.sessionId ?? id,
+        // Advertise the worker handle (map key) — the single public identity
+        // clients use for send/stop. The SDK's internal id is not exposed.
+        sessionId: id,
         status: session.status,
         cwd: session.cwd,
         mode: session.mode,
