@@ -21,6 +21,25 @@ bun run packages/worker/src/cli.ts --port 7890 --data-dir ~/.rcsm
 To produce a standalone bundle for deployment: `bun run build` (emits
 `dist/cli.js`, runnable with node or bun).
 
+### Auth
+
+The worker spawns the `claude` CLI, so sessions use whatever auth that CLI is
+configured for. Two paths:
+
+- **Subscription / API key** (default) — nothing extra; the CLI uses its own
+  login.
+- **AWS Bedrock** — pass `--bedrock` (and optionally `--region`, default
+  `us-west-2`). Auto-enabled if `CLAUDE_CODE_USE_BEDROCK=1` is already in the
+  environment. AWS credentials come from the ambient chain (env / profile /
+  SSO), so make sure `aws sts get-caller-identity` succeeds first.
+
+```bash
+bun run worker -- --bedrock --region us-west-2
+# equivalently:  CLAUDE_CODE_USE_BEDROCK=1 bun run worker
+```
+
+Only the **worker** needs auth — the TUI just talks to it over WebSocket.
+
 [bun]: https://bun.sh
 
 ## Protocol (summary)

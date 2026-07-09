@@ -28,5 +28,9 @@ bun run typecheck      # tsc --noEmit across all packages
 bun run build          # bun build → standalone dist/cli.js bundles (deploy only)
 ```
 
+The worker spawns the `claude` CLI and uses its auth. For AWS Bedrock, start it
+with `bun run worker -- --bedrock` (see [packages/worker](packages/worker#auth)).
+Only the worker needs auth; the TUI just connects to it.
+
 [bun]: https://bun.sh
 [ow]: https://github.com/EvanZhang008/open-walnut

@@ -10,10 +10,34 @@ import { log } from './logger.js'
 export interface StartWorkerOptions {
   port: number
   dataDir: string
+  /** Route Claude sessions through AWS Bedrock instead of subscription/API-key
+   *  auth. Auto-detected as true if CLAUDE_CODE_USE_BEDROCK is already set. */
+  bedrock: boolean
+  /** AWS region for Bedrock. Falls back to AWS_REGION, then DEFAULT_REGION. */
+  region: string
 }
 
 const DEFAULT_PORT = 7890
 const DEFAULT_DATA_DIR = path.join(os.homedir(), '.rcsm')
+const DEFAULT_REGION = 'us-west-2'
+
+/**
+ * Configure Bedrock auth for the sessions this worker will spawn.
+ *
+ * The Agent SDK spawns the `claude` CLI, which reads CLAUDE_CODE_USE_BEDROCK
+ * and AWS_REGION from its environment. Since child processes inherit our env,
+ * setting these here is all it takes to route every session through Bedrock —
+ * AWS credentials still come from the ambient chain (env / profile / SSO).
+ */
+function configureBedrock(bedrock: boolean, region?: string): { bedrock: boolean; region?: string } {
+  const enabled = bedrock || process.env.CLAUDE_CODE_USE_BEDROCK === '1'
+  if (!enabled) return { bedrock: false }
+
+  const resolvedRegion = region ?? process.env.AWS_REGION ?? DEFAULT_REGION
+  process.env.CLAUDE_CODE_USE_BEDROCK = '1'
+  process.env.AWS_REGION = resolvedRegion
+  return { bedrock: true, region: resolvedRegion }
+}
 
 /**
  * Start a worker with the given options. Returns the actual bound port
@@ -31,9 +55,14 @@ export async function startWorker(options: Partial<StartWorkerOptions> = {}): Pr
 
   const port = options.port ?? DEFAULT_PORT
   const dataDir = options.dataDir ?? DEFAULT_DATA_DIR
+  const { bedrock, region } = configureBedrock(options.bedrock ?? false, options.region)
 
   const server = new WorkerServer({ port, dataDir })
   const actualPort = await server.start()
-  log.server.info('worker listening', { port: actualPort, dataDir })
+  log.server.info('worker listening', {
+    port: actualPort,
+    dataDir,
+    auth: bedrock ? `bedrock (${region})` : 'default',
+  })
   return { port: actualPort, server }
 }
