@@ -10,6 +10,8 @@ import { log } from './logger.js'
 export interface StartWorkerOptions {
   port: number
   dataDir: string
+  /** Interface to bind. Defaults to 127.0.0.1 (reach via SSH tunnel). */
+  host: string
   /** Route Claude sessions through AWS Bedrock instead of subscription/API-key
    *  auth. Auto-detected as true if CLAUDE_CODE_USE_BEDROCK is already set. */
   bedrock: boolean
@@ -20,6 +22,7 @@ export interface StartWorkerOptions {
 const DEFAULT_PORT = 7890
 const DEFAULT_DATA_DIR = path.join(os.homedir(), '.rcsm')
 const DEFAULT_REGION = 'us-west-2'
+const DEFAULT_HOST = '127.0.0.1'
 
 /**
  * Configure Bedrock auth for the sessions this worker will spawn.
@@ -55,11 +58,13 @@ export async function startWorker(options: Partial<StartWorkerOptions> = {}): Pr
 
   const port = options.port ?? DEFAULT_PORT
   const dataDir = options.dataDir ?? DEFAULT_DATA_DIR
+  const host = options.host ?? DEFAULT_HOST
   const { bedrock, region } = configureBedrock(options.bedrock ?? false, options.region)
 
-  const server = new WorkerServer({ port, dataDir })
+  const server = new WorkerServer({ port, dataDir, host })
   const actualPort = await server.start()
   log.server.info('worker listening', {
+    host,
     port: actualPort,
     dataDir,
     auth: bedrock ? `bedrock (${region})` : 'default',

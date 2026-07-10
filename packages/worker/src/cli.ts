@@ -2,7 +2,7 @@
 /**
  * Worker CLI entry point.
  *
- *   rcsm-worker [--port 7890] [--data-dir ~/.rcsm] [--bedrock] [--region us-west-2]
+ *   rcsm-worker [--port 7890] [--host 127.0.0.1] [--data-dir ~/.rcsm] [--bedrock] [--region us-west-2]
  *
  * --bedrock routes Claude sessions through AWS Bedrock (auto-enabled if
  * CLAUDE_CODE_USE_BEDROCK=1 is already in the environment). AWS credentials
@@ -15,10 +15,12 @@
 import { startWorker } from './start.js'
 import { log } from './logger.js'
 
-function parseArgs(argv: string[]): { port?: number; dataDir?: string; bedrock?: boolean; region?: string } {
-  const out: { port?: number; dataDir?: string; bedrock?: boolean; region?: string } = {}
+function parseArgs(argv: string[]): { port?: number; host?: string; dataDir?: string; bedrock?: boolean; region?: string } {
+  const out: { port?: number; host?: string; dataDir?: string; bedrock?: boolean; region?: string } = {}
   const portIdx = argv.indexOf('--port')
   if (portIdx !== -1 && argv[portIdx + 1]) out.port = parseInt(argv[portIdx + 1], 10)
+  const hostIdx = argv.indexOf('--host')
+  if (hostIdx !== -1 && argv[hostIdx + 1]) out.host = argv[hostIdx + 1]
   const dataDirIdx = argv.indexOf('--data-dir')
   if (dataDirIdx !== -1 && argv[dataDirIdx + 1]) out.dataDir = argv[dataDirIdx + 1]
   if (argv.includes('--bedrock')) out.bedrock = true
@@ -28,8 +30,8 @@ function parseArgs(argv: string[]): { port?: number; dataDir?: string; bedrock?:
 }
 
 async function main(): Promise<void> {
-  const { port, dataDir, bedrock, region } = parseArgs(process.argv.slice(2))
-  const { port: actualPort } = await startWorker({ port, dataDir, bedrock, region })
+  const { port, host, dataDir, bedrock, region } = parseArgs(process.argv.slice(2))
+  const { port: actualPort } = await startWorker({ port, host, dataDir, bedrock, region })
 
   console.log(JSON.stringify({ port: actualPort, pid: process.pid }))
 

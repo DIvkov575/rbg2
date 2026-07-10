@@ -32,5 +32,28 @@ The worker spawns the `claude` CLI and uses its auth. For AWS Bedrock, start it
 with `bun run worker -- --bedrock` (see [packages/worker](packages/worker#auth)).
 Only the worker needs auth; the TUI just connects to it.
 
+## Running on a remote desktop
+
+Run the worker on a remote desktop (where the code and Bedrock creds live) and
+drive it from your laptop's TUI over an SSH tunnel. The worker binds
+`127.0.0.1` only — nothing is exposed on the network; auth is your SSH keys.
+
+Three scripts in [`scripts/`](scripts) drive this. The remote host is read from
+`RCSM_HOST`, a `--host` flag, or `RBG_HOST=` in `~/.rbg.conf`.
+
+```bash
+scripts/deploy-remote.sh          # cross-compile → ship → install → (re)start
+                                  # under a keep-alive supervisor. Re-run = update.
+scripts/tunnel.sh                 # SSH tunnel + launch the local TUI against it
+scripts/remote-auth.sh            # check remote Bedrock/Midway auth
+scripts/remote-auth.sh --login    # run `mwinit` on the desktop (needs key touch)
+```
+
+Typical loop: `deploy-remote.sh` whenever you change code, then `tunnel.sh` to
+test. No Bun/Node needed on the remote — the shipped binary is self-contained.
+
+If sessions fail with a credential error, the **desktop's** Midway session has
+expired (separate from your laptop's SSH cert) — run `remote-auth.sh --login`.
+
 [bun]: https://bun.sh
 [ow]: https://github.com/EvanZhang008/open-walnut

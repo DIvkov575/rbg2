@@ -34,6 +34,9 @@ import type {
 export interface WorkerServerOptions {
   port: number
   dataDir: string
+  /** Interface to bind. Defaults to 127.0.0.1 — the worker is meant to be
+   *  reached over an SSH tunnel, never exposed on the network directly. */
+  host?: string
 }
 
 export class WorkerServer {
@@ -75,7 +78,7 @@ export class WorkerServer {
         })
       })
 
-      this.httpServer.listen(this.options.port, () => {
+      this.httpServer.listen(this.options.port, this.options.host ?? '127.0.0.1', () => {
         const addr = this.httpServer!.address()
         if (typeof addr === 'object' && addr) {
           resolve(addr.port)
