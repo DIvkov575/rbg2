@@ -9,15 +9,24 @@ directly to a single `@rcsm/worker` over WebSocket (no orchestrator tier yet).
 running / red error), id, mode, and the last transcript line.
 
 ```
-↑/↓ move · enter open · n new · x kill · r refresh · q quit
+↑/↓ move · enter open · n new · x kill · r refresh · ? help · q quit
 ```
 
 **Session view** — a minimal live transcript (assistant text, tool calls +
 results, turn result with cost) plus a prompt composer for follow-ups.
 
 ```
-i prompt · x kill · esc back · (enter send · esc cancel while typing)
+i prompt · x kill · esc back · ? help · (enter send · esc cancel while typing)
 ```
+
+Press `?` in either view for a full keybinding overlay (any key closes it).
+
+## Connection
+
+The TUI connects on launch and **auto-reconnects** with backoff if the worker
+drops — important for a remote worker reached over an SSH tunnel, which can
+blip. The header shows `connecting` / `open` / `closed`; the footer shows retry
+progress while reconnecting. Quitting (`q` / ctrl-c) stops reconnection.
 
 ## Run
 

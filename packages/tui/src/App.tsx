@@ -34,6 +34,7 @@ export function App({ client, cwd }: AppProps): React.ReactElement {
   const [input, setInput] = useState('')
   const [composing, setComposing] = useState(false)
   const [status, setStatus] = useState('')
+  const [showHelp, setShowHelp] = useState(false)
 
   // Ordered list of session ids for stable navigation.
   const ids = (): string[] => Array.from(store.current.keys())
@@ -42,18 +43,22 @@ export function App({ client, cwd }: AppProps): React.ReactElement {
   useEffect(() => {
     const onState = (s: ConnState) => {
       setConn(s)
-      if (s === 'open') void refresh()
+      if (s === 'open') { setStatus('connected'); void refresh() }
+    }
+    const onReconnecting = ({ attempt, delay }: { attempt: number; delay: number }) => {
+      setStatus(`disconnected — reconnecting (attempt ${attempt}, ${Math.round(delay / 1000)}s)…`)
     }
     const onEvent = (evt: { sessionId: string; name: import('@rcsm/protocol').SessionEventName; data: unknown }) => {
       applyEvent(store.current, evt.name, evt.data)
       forceRender()
     }
     client.on('state', onState)
+    client.on('reconnecting', onReconnecting)
     client.on('event', onEvent)
-    client.on('error', () => setStatus('connection error'))
     client.connect()
     return () => {
       client.off('state', onState)
+      client.off('reconnecting', onReconnecting)
       client.off('event', onEvent)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -128,6 +133,10 @@ export function App({ client, cwd }: AppProps): React.ReactElement {
 
     if (key.ctrl && ch === 'c') { client.close(); exit(); return }
 
+    // Help overlay: any key dismisses it; '?' toggles it from anywhere.
+    if (showHelp) { setShowHelp(false); return }
+    if (ch === '?') { setShowHelp(true); return }
+
     if (view === 'agents') {
       const list = ids()
       if (key.upArrow || ch === 'k') setSelected((i) => Math.max(0, i - 1))
@@ -149,10 +158,41 @@ export function App({ client, cwd }: AppProps): React.ReactElement {
   return (
     <Box flexDirection="column" width="100%">
       <Header conn={conn} view={view} />
-      {view === 'agents'
-        ? <AgentsView store={store.current} selected={selected} />
-        : <SessionView session={activeId ? store.current.get(activeId) : undefined} />}
-      <Footer view={view} composing={composing} input={input} status={status} />
+      {showHelp
+        ? <HelpView />
+        : view === 'agents'
+          ? <AgentsView store={store.current} selected={selected} />
+          : <SessionView session={activeId ? store.current.get(activeId) : undefined} />}
+      <Footer view={view} composing={composing} input={input} status={status} showHelp={showHelp} />
+    </Box>
+  )
+}
+
+function HelpView(): React.ReactElement {
+  const rows: Array<[string, string]> = [
+    ['↑ / ↓ · j / k', 'move selection (agents)'],
+    ['enter', 'open selected session'],
+    ['n', 'new session'],
+    ['x', 'kill selected / current session'],
+    ['r', 'refresh session list'],
+    ['i', 'compose a prompt (session view)'],
+    ['enter / esc', 'send / cancel while composing'],
+    ['esc / q', 'back to agents (from session view)'],
+    ['?', 'toggle this help'],
+    ['q · ctrl-c', 'quit'],
+  ]
+  return (
+    <Box flexDirection="column" paddingX={1} paddingY={1}>
+      <Text bold>Keybindings</Text>
+      <Box flexDirection="column" marginTop={1}>
+        {rows.map(([keys, desc]) => (
+          <Box key={keys}>
+            <Box width={18}><Text color="cyan">{keys}</Text></Box>
+            <Text dimColor>{desc}</Text>
+          </Box>
+        ))}
+      </Box>
+      <Box marginTop={1}><Text dimColor>Press any key to close.</Text></Box>
     </Box>
   )
 }
@@ -226,13 +266,14 @@ function TranscriptLineView({ kind, text }: { kind: string; text: string }): Rea
 }
 
 function Footer(
-  { view, composing, input, status }: { view: View; composing: boolean; input: string; status: string },
+  { view, composing, input, status, showHelp }:
+  { view: View; composing: boolean; input: string; status: string; showHelp: boolean },
 ): React.ReactElement {
   return (
     <Box flexDirection="column" borderStyle="round" borderColor="gray" paddingX={1}>
       {composing
         ? <Text>› {input}<Text inverse> </Text></Text>
-        : <Text dimColor>{keyHints(view)}</Text>}
+        : <Text dimColor>{showHelp ? 'any key to close help' : keyHints(view)}</Text>}
       {status ? <Text dimColor>{status}</Text> : null}
     </Box>
   )
@@ -240,6 +281,6 @@ function Footer(
 
 function keyHints(view: View): string {
   return view === 'agents'
-    ? '↑/↓ move · enter open · n new · x kill · r refresh · q quit'
-    : 'i prompt · x kill · esc back · (enter send · esc cancel while typing)'
+    ? '↑/↓ move · enter open · n new · x kill · r refresh · ? help · q quit'
+    : 'i prompt · x kill · esc back · ? help · (enter send · esc cancel while typing)'
 }

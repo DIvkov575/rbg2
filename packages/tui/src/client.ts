@@ -31,10 +31,17 @@ export interface WorkerEvent {
 
 export type ConnState = 'connecting' | 'open' | 'closed'
 
+// Reconnect backoff: quick first retries, capped. A remote worker reached over
+// an SSH tunnel can blip, so the client keeps trying until the worker returns.
+const BACKOFF_MS = [500, 1000, 2000, 4000, 8000]
+
 export class WorkerClient extends EventEmitter {
   private ws: WebSocket | null = null
   private pending = new Map<string, { resolve: (data: unknown) => void; reject: (err: Error) => void }>()
   private _state: ConnState = 'connecting'
+  private closedByUser = false
+  private attempt = 0
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null
 
   constructor(private url: string) {
     super()
@@ -44,7 +51,17 @@ export class WorkerClient extends EventEmitter {
     return this._state
   }
 
+  /** Number of consecutive failed connect attempts (0 once open). */
+  get reconnectAttempt(): number {
+    return this.attempt
+  }
+
   connect(): void {
+    this.closedByUser = false
+    this.openSocket()
+  }
+
+  private openSocket(): void {
     this._state = 'connecting'
     this.emit('state', this._state)
 
@@ -52,6 +69,7 @@ export class WorkerClient extends EventEmitter {
     this.ws = ws
 
     ws.on('open', () => {
+      this.attempt = 0
       this._state = 'open'
       this.emit('state', this._state)
     })
@@ -76,11 +94,26 @@ export class WorkerClient extends EventEmitter {
       // Reject any in-flight requests
       for (const [, p] of this.pending) p.reject(new Error('connection closed'))
       this.pending.clear()
+      this.scheduleReconnect()
     })
 
     ws.on('error', (err) => {
-      this.emit('error', err)
+      // Only emit if someone is listening — a bare 'error' with no listener
+      // makes Node's EventEmitter throw. Failed reconnect attempts fire this
+      // routinely, so swallow it; 'close' fires after and schedules retry.
+      if (this.listenerCount('error') > 0) this.emit('error', err)
     })
+  }
+
+  private scheduleReconnect(): void {
+    if (this.closedByUser || this.reconnectTimer) return
+    const delay = BACKOFF_MS[Math.min(this.attempt, BACKOFF_MS.length - 1)]
+    this.attempt += 1
+    this.emit('reconnecting', { attempt: this.attempt, delay })
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null
+      if (!this.closedByUser) this.openSocket()
+    }, delay)
   }
 
   private handleResponse(frame: ResponseFrame): void {
@@ -114,6 +147,11 @@ export class WorkerClient extends EventEmitter {
   }
 
   close(): void {
+    this.closedByUser = true
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer)
+      this.reconnectTimer = null
+    }
     this.ws?.close()
   }
 }
