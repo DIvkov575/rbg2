@@ -9,7 +9,7 @@
 
 import React from 'react'
 import { render } from 'ink'
-import { WorkerClient } from './client.js'
+import { WorkerClient } from '@rcsm/client'
 import { App } from './App.js'
 
 function parseArgs(argv: string[]): { worker: string; cwd: string } {

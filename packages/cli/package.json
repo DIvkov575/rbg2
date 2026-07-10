@@ -1,0 +1,19 @@
+{
+  "name": "@rcsm/cli",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Plain (non-TUI) command-line client for the worker — scriptable, no TTY needed",
+  "type": "module",
+  "main": "./src/cli.ts",
+  "bin": {
+    "rcsm": "./src/cli.ts"
+  },
+  "scripts": {
+    "start": "bun run src/cli.ts",
+    "build": "bun build src/cli.ts --target=node --outdir dist"
+  },
+  "dependencies": {
+    "@rcsm/client": "*",
+    "@rcsm/protocol": "*"
+  }
+}

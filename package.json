@@ -9,10 +9,11 @@
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "compile": "bun build packages/worker/src/cli.ts --compile --outfile bin/rcsm-worker && bun build packages/tui/src/cli.tsx --compile --outfile bin/rcsm-tui",
+    "compile": "bun build packages/worker/src/cli.ts --compile --outfile bin/rcsm-worker && bun build packages/tui/src/cli.tsx --compile --outfile bin/rcsm-tui && bun build packages/cli/src/cli.ts --compile --outfile bin/rcsm",
     "build": "bun run --filter '*' build",
     "worker": "bun run packages/worker/src/cli.ts",
     "tui": "bun run packages/tui/src/cli.tsx",
+    "cli": "bun run packages/cli/src/cli.ts",
     "test": "bun test"
   },
   "devDependencies": {

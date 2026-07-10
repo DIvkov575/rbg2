@@ -2,7 +2,8 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "paths": {
-      "@rcsm/protocol": ["./packages/protocol/src/index.ts"]
+      "@rcsm/protocol": ["./packages/protocol/src/index.ts"],
+      "@rcsm/client": ["./packages/client/src/index.ts"]
     }
   },
   "include": ["packages/*/src/**/*"]

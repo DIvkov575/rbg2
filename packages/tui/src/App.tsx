@@ -7,8 +7,7 @@
 import React, { useEffect, useReducer, useRef, useState } from 'react'
 import { Box, Text, useApp, useInput } from 'ink'
 import type { SessionInfo, SessionListResult } from '@rcsm/protocol'
-import { WorkerClient, type ConnState } from './client.js'
-import { applyEvent, type SessionModel } from './store.js'
+import { WorkerClient, applyEvent, type ConnState, type SessionModel } from '@rcsm/client'
 
 type View = 'agents' | 'session'
 
