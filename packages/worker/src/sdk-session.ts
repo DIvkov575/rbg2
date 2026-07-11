@@ -14,6 +14,8 @@
  */
 
 import crypto from 'node:crypto'
+import fs from 'node:fs'
+import os from 'node:os'
 import { execSync } from 'node:child_process'
 import type {
   Query,
@@ -75,6 +77,25 @@ function detectClaudePath(): string | null {
   } catch {
     return null
   }
+}
+
+// ── Working-directory validation ──
+//
+// A client sends the cwd to run in — but the client may be on a DIFFERENT
+// machine than the worker (e.g. a laptop TUI driving a remote desktop worker),
+// so its path may not exist here. Spawning the CLI with a non-existent cwd
+// fails with ENOENT ("exists but failed to launch"). Validate the requested
+// cwd and fall back to $HOME (then /tmp) if it isn't a real directory here.
+function resolveCwd(requested: string | undefined): string {
+  const home = os.homedir()
+  for (const dir of [requested, home, '/tmp']) {
+    if (dir) {
+      try {
+        if (fs.statSync(dir).isDirectory()) return dir
+      } catch { /* not here — try next */ }
+    }
+  }
+  return home
 }
 
 // ── Types ──
@@ -194,7 +215,9 @@ export class SdkSession {
   async start(params: SdkSessionOptions): Promise<string> {
     const { query } = await import('@anthropic-ai/claude-agent-sdk')
 
-    this._cwd = params.cwd
+    // Resolve to a directory that exists ON THIS machine — the client may be
+    // remote and its cwd may not exist here (would spawn the CLI with ENOENT).
+    this._cwd = resolveCwd(params.cwd)
     this._mode = params.mode ?? 'default'
     this._sessionId = params.sessionId
     this._status = 'running'
@@ -202,7 +225,7 @@ export class SdkSession {
 
     // Build options
     const options: Options = {
-      cwd: params.cwd,
+      cwd: this._cwd,
       includePartialMessages: true,
       abortController: this.abortController,
     }
