@@ -41,33 +41,30 @@ Run the worker on a remote desktop (where the code and Bedrock creds live) and
 drive it from your laptop's TUI over an SSH tunnel. The worker binds
 `127.0.0.1` only — nothing is exposed on the network; auth is your SSH keys.
 
-Three scripts in [`scripts/`](scripts) drive this. The remote host is read from
-`RCSM_HOST`, a `--host` flag, or `RBG_HOST=` in `~/.rbg.conf`.
+No Bun/Node needed on the remote — cross-compile a self-contained binary and
+ship it:
 
 ```bash
-scripts/deploy-remote.sh          # cross-compile → ship → install → (re)start
-                                  # under a keep-alive supervisor. Re-run = update.
-scripts/tunnel.sh                 # SSH tunnel + launch the local TUI against it
-scripts/remote-auth.sh            # check remote Bedrock/Midway auth
-scripts/remote-auth.sh --login    # run `mwinit` on the desktop (needs key touch)
-```
+# 1. cross-compile for the remote (Linux x64) and copy it over
+bun build packages/worker/src/cli.ts --compile --target=bun-linux-x64 --outfile /tmp/rcsm-worker
+scp /tmp/rcsm-worker "$HOST:~/.local/bin/rcsm-worker"
 
-Typical loop: `deploy-remote.sh` whenever you change code, then `tunnel.sh` to
-test. No Bun/Node needed on the remote — the shipped binary is self-contained.
-`tunnel.sh` verifies SSH up front, waits until the worker actually answers
-(polls `rcsm ping`), and self-heals — these desktops route SSH through an
-Amazon WebSocket proxy that can drop an idle forward, so the tunnel runs under
-a restart loop with keepalives and the auto-reconnecting client rides through
-any blip.
+# 2. start it on the desktop (bound to localhost, Bedrock auth)
+ssh "$HOST" '~/.local/bin/rcsm-worker --bedrock --host 127.0.0.1 --port 7890 &'
+
+# 3. tunnel + connect from your laptop (keepalives keep it stable)
+ssh -o ServerAliveInterval=5 -L 7890:127.0.0.1:7890 "$HOST" 'sleep infinity' &
+bun run cli -- --worker ws://127.0.0.1:7890 ping    # confirm it's reachable
+bun run tui -- --worker ws://127.0.0.1:7890         # or drive it with the TUI
+```
 
 Two independent auth layers can block a connection:
 
 - **Can't SSH at all** (`Permission denied (publickey)`) → your **laptop's**
-  Midway/SSH cert expired. Run `mwinit` locally. `tunnel.sh` detects this and
-  says so instead of hanging.
+  Midway/SSH cert expired. Run `mwinit` locally.
 - **Sessions fail with a credential error** but SSH works → the **desktop's**
-  Midway session expired (separate from your laptop's). Run
-  `remote-auth.sh --login`.
+  Midway session expired (separate from your laptop's). Run `mwinit` on the
+  desktop: `ssh -t "$HOST" mwinit`.
 
 [bun]: https://bun.sh
 [ow]: https://github.com/EvanZhang008/open-walnut
