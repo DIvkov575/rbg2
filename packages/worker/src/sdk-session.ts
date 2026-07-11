@@ -14,6 +14,7 @@
  */
 
 import crypto from 'node:crypto'
+import { execSync } from 'node:child_process'
 import type {
   Query,
   SDKMessage,
@@ -35,6 +36,46 @@ import type {
   SessionResultSubtype,
 } from '@rcsm/protocol'
 import { CostWatermark } from './cost-watermark.js'
+
+// ── Claude CLI resolution ──
+//
+// The SDK spawns the `claude` CLI. When the worker runs as a compiled Bun
+// binary, the SDK's bundled/optional CLI lookup fails ("Native CLI binary for
+// <platform> not found"), so we resolve the real `claude` executable once and
+// pass it explicitly via pathToClaudeCodeExecutable.
+//
+// On Amazon desktops, `claude` on PATH is a toolbox wrapper (toolbox-exec)
+// that the SDK can find but cannot launch directly. In that case we resolve
+// the real native binary under ~/.toolbox/tools/claude-code/<version>/bin/claude
+// (highest version). Honors $CLAUDE_CLI_PATH as an explicit override.
+// Resolved lazily and cached.
+let _claudePath: string | null | undefined
+function resolveClaudePath(): string | undefined {
+  if (_claudePath !== undefined) return _claudePath ?? undefined
+  _claudePath = detectClaudePath()
+  return _claudePath ?? undefined
+}
+
+function detectClaudePath(): string | null {
+  const override = process.env.CLAUDE_CLI_PATH
+  if (override) return override
+
+  // Prefer the real toolbox native binary if present (bypasses the wrapper).
+  try {
+    const found = execSync(
+      'ls -d "$HOME"/.toolbox/tools/claude-code/*/bin/claude 2>/dev/null | sort -V | tail -1',
+      { encoding: 'utf8', shell: '/bin/bash' },
+    ).trim()
+    if (found) return found
+  } catch { /* not a toolbox host — fall through */ }
+
+  // Otherwise use whatever `claude` is on PATH.
+  try {
+    return execSync('command -v claude', { encoding: 'utf8', shell: '/bin/bash' }).trim() || null
+  } catch {
+    return null
+  }
+}
 
 // ── Types ──
 
@@ -165,6 +206,8 @@ export class SdkSession {
       includePartialMessages: true,
       abortController: this.abortController,
     }
+    const claudePath = resolveClaudePath()
+    if (claudePath) options.pathToClaudeCodeExecutable = claudePath
 
     // Permission mode
     if (params.mode === 'bypass') {
@@ -266,6 +309,8 @@ export class SdkSession {
       abortController: this.abortController,
       resume: this._sessionId,
     }
+    const claudePath = resolveClaudePath()
+    if (claudePath) options.pathToClaudeCodeExecutable = claudePath
 
     // Permission mode
     if (this._mode === 'bypass') {

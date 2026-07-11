@@ -41,22 +41,18 @@ Run the worker on a remote desktop (where the code and Bedrock creds live) and
 drive it from your laptop's TUI over an SSH tunnel. The worker binds
 `127.0.0.1` only — nothing is exposed on the network; auth is your SSH keys.
 
-No Bun/Node needed on the remote — cross-compile a self-contained binary and
-ship it:
+**One command** — ship the latest code, (re)start the remote worker under a
+keep-alive supervisor, tunnel in, and open the TUI:
 
 ```bash
-# 1. cross-compile for the remote (Linux x64) and copy it over
-bun build packages/worker/src/cli.ts --compile --target=bun-linux-x64 --outfile /tmp/rcsm-worker
-scp /tmp/rcsm-worker "$HOST:~/.local/bin/rcsm-worker"
-
-# 2. start it on the desktop (bound to localhost, Bedrock auth)
-ssh "$HOST" '~/.local/bin/rcsm-worker --bedrock --host 127.0.0.1 --port 7890 &'
-
-# 3. tunnel + connect from your laptop (keepalives keep it stable)
-ssh -o ServerAliveInterval=5 -L 7890:127.0.0.1:7890 "$HOST" 'sleep infinity' &
-bun run cli -- --worker ws://127.0.0.1:7890 ping    # confirm it's reachable
-bun run tui -- --worker ws://127.0.0.1:7890         # or drive it with the TUI
+bun run dev            # remote desktop (host from ~/.rbg.conf RBG_HOST)
+bun run dev:local      # or run everything on THIS machine, no SSH
 ```
+
+Under the hood `bun run dev` runs `scripts/deploy-remote.sh` then
+`scripts/tunnel.sh`; pass `--no-deploy` to skip the rebuild, or `--host` to
+target a specific desktop. No Bun/Node needed on the remote — the shipped
+binary is self-contained.
 
 Two independent auth layers can block a connection:
 

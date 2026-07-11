@@ -8,6 +8,8 @@
     "packages/*"
   ],
   "scripts": {
+    "dev": "bash scripts/dev.sh",
+    "dev:local": "bash scripts/dev.sh --local",
     "typecheck": "tsc --noEmit",
     "compile": "bun build packages/worker/src/cli.ts --compile --outfile bin/rcsm-worker && bun build packages/tui/src/cli.tsx --compile --outfile bin/rcsm-tui && bun build packages/cli/src/cli.ts --compile --outfile bin/rcsm",
     "build": "bun run --filter '*' build",
