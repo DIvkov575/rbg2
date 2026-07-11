@@ -54,9 +54,20 @@ scripts/remote-auth.sh --login    # run `mwinit` on the desktop (needs key touch
 
 Typical loop: `deploy-remote.sh` whenever you change code, then `tunnel.sh` to
 test. No Bun/Node needed on the remote — the shipped binary is self-contained.
+`tunnel.sh` verifies SSH up front, waits until the worker actually answers
+(polls `rcsm ping`), and self-heals — these desktops route SSH through an
+Amazon WebSocket proxy that can drop an idle forward, so the tunnel runs under
+a restart loop with keepalives and the auto-reconnecting client rides through
+any blip.
 
-If sessions fail with a credential error, the **desktop's** Midway session has
-expired (separate from your laptop's SSH cert) — run `remote-auth.sh --login`.
+Two independent auth layers can block a connection:
+
+- **Can't SSH at all** (`Permission denied (publickey)`) → your **laptop's**
+  Midway/SSH cert expired. Run `mwinit` locally. `tunnel.sh` detects this and
+  says so instead of hanging.
+- **Sessions fail with a credential error** but SSH works → the **desktop's**
+  Midway session expired (separate from your laptop's). Run
+  `remote-auth.sh --login`.
 
 [bun]: https://bun.sh
 [ow]: https://github.com/EvanZhang008/open-walnut
